@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Panel - Receive Notification</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: inline-block; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        #token-display { word-break: break-all; color: blue; margin-top: 20px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>User Panel</h2>
+        <p>নোটিফিকেশন পেতে নিচের বাটনে ক্লিক করুন</p>
+        <button onclick="requestPermission()">Enable Notification</button>
+        <div id="token-display"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJaQ-0QMHnOUSN8jTZ1eLo7-3fmXSEK9o",
+            authDomain: "din-push-server.firebaseapp.com",
+            projectId: "din-push-server",
+            storageBucket: "din-push-server.firebasestorage.app",
+            messagingSenderId: "469250442836",
+            appId: "1:469250442836:web:7a0576e7263ad8179d4fc1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const messaging = getMessaging(app);
+
+        window.requestPermission = () => {
+            Notification.requestPermission().then((permission) => {
+                if (permission === 'granted') {
+                    getToken(messaging, { vapidKey: 'BPIP1SuGiJkbOP3iYghgt6IFDD_l88svem5IYt5bH13CmXxJoMWzNDwZ4o73gvz8NH0CTj5EdBCmuK7YT-R41pw' })
+                    .then((currentToken) => {
+                        if (currentToken) {
+                            document.getElementById('token-display').innerHTML = "<strong>Your Device Token:</strong><br>" + currentToken;
+                            console.log(currentToken);
+                        }
+                    });
+                } else {
+                    alert("Permission Denied!");
+                }
+            });
+        }
+    </script>
+</body>
+</html>
