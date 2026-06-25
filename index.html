@@ -5,78 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Panel - Push Notification</title>
     <style>
-        /* সুন্দর ইন্টারফেসের জন্য সিএসএস */
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-            background-color: #f0f2f5; 
-        }
-        .card { 
-            background: white; 
-            padding: 40px; 
-            border-radius: 15px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            text-align: center; 
-            max-width: 400px; 
-            width: 90%; 
-        }
-        h2 { color: #333; margin-bottom: 10px; }
-        p { color: #666; margin-bottom: 25px; line-height: 1.5; }
-        
-        button { 
-            background-color: #4CAF50; 
-            color: white; 
-            border: none; 
-            padding: 12px 24px; 
-            font-size: 16px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            transition: all 0.3s ease; 
-            width: 100%;
-            font-weight: bold;
-        }
-        button:hover { background-color: #45a049; }
-        button:disabled { 
-            background-color: #bdc3c7 !important; 
-            cursor: not-allowed; 
-        }
-
-        #token-display { 
-            margin-top: 25px; 
-            padding: 15px; 
-            background: #f8f9fa; 
-            border-radius: 8px; 
-            font-size: 11px; 
-            color: #555; 
-            word-break: break-all; 
-            border: 1px dashed #ddd;
-            display: none; /* শুরুতে লুকানো থাকবে */
-        }
-        .success-text { color: #27ae60; font-weight: bold; margin-top: 10px; display: none; }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 90%; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
+        button:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; }
+        #token-display { margin-top: 25px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 11px; color: #555; word-break: break-all; border: 1px dashed #ddd; display: none; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <h2>User Panel</h2>
-        <p>নোটিফিকেশন পেতে নিচের বাটনে ক্লিক করুন এবং ব্রাউজার থেকে "Allow" সিলেক্ট করুন।</p>
-        
+        <p>নোটিফিকেশন এনাবল করতে নিচের বাটনে ক্লিক করুন।</p>
         <button id="notify-btn" onclick="requestPermission()">Enable Notification</button>
-        
-        <div id="success-msg" class="success-text">সফলভাবে এনাবল হয়েছে! ✅</div>
         <div id="token-display"></div>
     </div>
 
-    <!-- Firebase SDK Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js";
 
-        // আপনার ফায়ারবেস কনফিগ
         const firebaseConfig = {
             apiKey: "AIzaSyDJaQ-0QMHnOUSN8jTZ1eLo7-3fmXSEK9o",
             authDomain: "din-push-server.firebaseapp.com",
@@ -86,51 +34,54 @@
             appId: "1:469250442836:web:7a0576e7263ad8179d4fc1"
         };
 
-        // ফায়ারবেস ইনিশিয়ালাইজ
         const app = initializeApp(firebaseConfig);
         const messaging = getMessaging(app);
 
-        // বাটনে ক্লিক করলে যা হবে
-        window.requestPermission = () => {
+        // Service Worker ম্যানুয়ালি রেজিস্টার করা (এটিই সমস্যার সমাধান করবে)
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    // আপনার রিপোজিটরির নাম এখানে সঠিকভাবে দিতে হবে
+                    const registration = await navigator.serviceWorker.register('/push-Notifications-/firebase-messaging-sw.js');
+                    console.log('Service Worker registered with scope:', registration.scope);
+                    return registration;
+                } catch (err) {
+                    console.error('Service Worker registration failed:', err);
+                }
+            }
+        }
+
+        window.requestPermission = async () => {
             const btn = document.getElementById('notify-btn');
             const tokenBox = document.getElementById('token-display');
-            const successMsg = document.getElementById('success-msg');
 
-            // পারমিশন চাওয়া
-            Notification.requestPermission().then((permission) => {
-                if (permission === 'granted') {
-                    // বাটন পরিবর্তন
-                    btn.innerText = "Processing...";
-                    btn.disabled = true;
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                btn.innerText = "Processing...";
+                btn.disabled = true;
 
-                    // টোকেন সংগ্রহ করা
-                    getToken(messaging, { vapidKey: 'BPIP1SuGiJkbOP3iYghgt6IFDD_l88svem5IYt5bH13CmXxJoMWzNDwZ4o73gvz8NH0CTj5EdBCmuK7YT-R41pw' })
-                    .then((currentToken) => {
-                        if (currentToken) {
-                            // সফল হলে বাটনের ফাইনাল অবস্থা
-                            btn.innerText = "Enabled ✅";
-                            successMsg.style.display = "block";
-                            
-                            // টোকেনটি দেখানো (টেস্ট করার জন্য)
-                            tokenBox.style.display = "block";
-                            tokenBox.innerHTML = "<strong>Your Device Token:</strong><br>" + currentToken;
-                            
-                            console.log("FCM Token:", currentToken);
-                        } else {
-                            btn.innerText = "Enable Notification";
-                            btn.disabled = false;
-                            alert("টোকেন পাওয়া যায়নি! আবার চেষ্টা করুন।");
-                        }
-                    }).catch((err) => {
-                        btn.innerText = "Enable Notification";
-                        btn.disabled = false;
-                        console.error('Error getting token:', err);
-                        alert("এরর: " + err.message);
-                    });
-                } else {
-                    alert("আপনি নোটিফিকেশন পারমিশন ব্লক করেছেন। ব্রাউজার সেটিংস থেকে এটি এলাউ করুন।");
-                }
-            });
+                // প্রথমে সার্ভিস ওয়ার্কার রেজিস্টার করুন
+                const registration = await registerServiceWorker();
+
+                // এবার টোকেন নিন
+                getToken(messaging, { 
+                    vapidKey: 'BPIP1SuGiJkbOP3iYghgt6IFDD_l88svem5IYt5bH13CmXxJoMWzNDwZ4o73gvz8NH0CTj5EdBCmuK7YT-R41pw',
+                    serviceWorkerRegistration: registration // এটি খুব গুরুত্বপূর্ণ
+                })
+                .then((currentToken) => {
+                    if (currentToken) {
+                        btn.innerText = "Enabled ✅";
+                        tokenBox.style.display = "block";
+                        tokenBox.innerHTML = "<strong>Your Device Token:</strong><br>" + currentToken;
+                    }
+                }).catch((err) => {
+                    btn.innerText = "Enable Notification";
+                    btn.disabled = false;
+                    alert("Error: " + err.message);
+                });
+            } else {
+                alert("Permission Denied!");
+            }
         }
     </script>
 </body>
